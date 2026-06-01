@@ -51,6 +51,18 @@
     .kopp .door.klaar{ color:#0a0a0f; background:var(--groen); border-color:var(--groen); }
     .kopp .k.mis .dot{ animation:mis .45s 3; }
     @keyframes mis{ 50%{ background:#e0466e; box-shadow:0 0 9px #e0466e; } }
+    /* huidige vraag · 1+1=2 captions · diepte (Bloom/Burch) */
+    .vraag{ position:fixed; top:52px; left:50%; transform:translateX(-50%); text-align:center; pointer-events:none; font-family:Georgia,serif; color:var(--gloed); }
+    .vraag .som{ font-size:23px; letter-spacing:.04em; }
+    .vraag .ond{ font-family:ui-monospace,monospace; font-size:8.5px; letter-spacing:.2em; text-transform:uppercase; color:rgba(230,234,242,.42); margin-top:2px; }
+    .kopp .k .vra{ display:block; font-size:7.5px; letter-spacing:.01em; color:rgba(230,234,242,.42); margin-top:2px; white-space:nowrap; }
+    .kopp .k.aan .vra{ color:var(--groen); }
+    .diepte{ position:fixed; left:16px; top:50%; transform:translateY(-50%); width:152px; font-family:ui-monospace,monospace; font-size:10px; color:rgba(230,234,242,.6); background:rgba(20,20,28,.72); border:1px solid rgba(230,234,242,.12); border-radius:8px; padding:11px 12px; }
+    .diepte h4{ margin:0 0 6px; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--gloed); }
+    .diepte .rij{ padding:1.5px 0; opacity:.38; transition:opacity .2s, color .2s; }
+    .diepte .rij.aan{ opacity:1; color:var(--gloed); }
+    .diepte .burch{ margin-top:9px; border-top:1px solid rgba(230,234,242,.10); padding-top:7px; }
+    .diepte .burch .rij.aan{ color:var(--groen); }
     .sluier{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
              gap:14px; background:rgba(10,10,15,.93); cursor:pointer; z-index:50; text-align:center; padding:24px; }
     .sluier .titel{ font-size:30px; font-weight:300; color:var(--gloed); }
@@ -89,13 +101,32 @@
   </div>
 
   <div class="kopp" id="kopp">
-    <div class="k" data-k="signaal"><span class="dot"></span>signaal</div>
-    <div class="k" data-k="stof"><span class="dot"></span>stof</div>
-    <div class="k" data-k="elektrisch"><span class="dot"></span>elektrisch</div>
-    <div class="k" data-k="mechanisch"><span class="dot"></span>mechanisch</div>
-    <div class="k" data-k="herkenning"><span class="dot"></span>herkenning</div>
-    <div class="k" data-k="hechting"><span class="dot"></span>hechting</div>
+    <div class="k" data-k="signaal"><span class="dot"></span>signaal<span class="vra">het verschil</span></div>
+    <div class="k" data-k="stof"><span class="dot"></span>stof<span class="vra">twee dragen</span></div>
+    <div class="k" data-k="elektrisch"><span class="dot"></span>elektrisch<span class="vra">één–twee</span></div>
+    <div class="k" data-k="mechanisch"><span class="dot"></span>mechanisch<span class="vra">vinger+vinger</span></div>
+    <div class="k" data-k="herkenning"><span class="dot"></span>herkenning<span class="vra">als 2+2</span></div>
+    <div class="k" data-k="hechting"><span class="dot"></span>hechting<span class="vra">ik+jij</span></div>
     <div class="door" id="door">doorgaan</div>
+  </div>
+
+  <div class="vraag"><div class="som">1 + 1 = 2</div><div class="ond">zes deuren · één waarheid</div></div>
+
+  <div class="diepte" id="diepte">
+    <h4>diepte · Bloom</h4>
+    <div class="rij" data-b="0">onthouden</div>
+    <div class="rij" data-b="1">begrijpen</div>
+    <div class="rij" data-b="2">toepassen</div>
+    <div class="rij" data-b="3">analyseren</div>
+    <div class="rij" data-b="4">evalueren</div>
+    <div class="rij" data-b="5">creëren</div>
+    <div class="burch">
+      <h4 style="margin:0 0 6px">beheersing · Burch</h4>
+      <div class="rij" data-u="0">onbewust onbekwaam</div>
+      <div class="rij" data-u="1">bewust onbekwaam</div>
+      <div class="rij" data-u="2">bewust bekwaam</div>
+      <div class="rij" data-u="3">onbewust bekwaam</div>
+    </div>
   </div>
 
   <div class="sluier" id="sluier">
@@ -399,7 +430,13 @@
     function bar(f,v,val,txt){ $(f).style.width=Math.max(0,Math.min(1,val))*100+'%'; $(v).textContent=txt; }
     const koppEls={}; document.querySelectorAll('.kopp .k').forEach(el=>koppEls[el.dataset.k]=el);
     function tekenKopp(){ for(const k in koppeling) koppEls[k] && koppEls[k].classList.toggle('aan', koppeling[k]>=1);
-      const d=document.getElementById('door'); if(d) d.classList.toggle('klaar', alleAangeraakt()); }
+      const d=document.getElementById('door'); if(d) d.classList.toggle('klaar', alleAangeraakt());
+      // diepte: Bloom uit de breedte (aantal aangeraakte cellen), Burch uit de toestand
+      const aantal=KOPP.reduce((n,k)=>n+(koppeling[k]>=1?1:0),0);
+      const bloom=Math.min(5,aantal);
+      let burch; if(aantal>=4 && gaba>0.5 && dopa<0.15) burch=3; else if(dopa>0.30) burch=1; else if(glut>0.35||aantal>=1) burch=2; else burch=0;
+      document.querySelectorAll('.diepte .rij[data-b]').forEach(el=>el.classList.toggle('aan', +el.dataset.b===bloom));
+      document.querySelectorAll('.diepte .rij[data-u]').forEach(el=>el.classList.toggle('aan', +el.dataset.u===burch)); }
     function hud(){
       $('verwTekst').textContent = `verwondering ${(verwondering*100|0)}%`;
       bar('fBase','vBase',rustBasis, rustBasis.toFixed(2));
