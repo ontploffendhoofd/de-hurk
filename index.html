@@ -335,7 +335,11 @@
       // dux volgt de muis (zacht) — beweging = inspanning, stilte = rust
       if(pointerAan){ const r=Math.hypot(muisW.x,muisW.y), mx=RING_R-0.4;
         const dx=(r>mx)?muisW.x*(mx/r):muisW.x, dy=(r>mx)?muisW.y*(mx/r):muisW.y;
-        groot.pos.x+=(dx-groot.pos.x)*0.10; groot.pos.y+=(dy-groot.pos.y)*0.10; }
+        // geheugenkern: onthoud je snelheid en loop er iets op vóór — sneller dan je spiegelbeeld
+        groot.velX=(groot.velX||0)*0.6 + (dx-(groot._px??dx))*0.4; groot._px=dx;
+        groot.velY=(groot.velY||0)*0.6 + (dy-(groot._py??dy))*0.4; groot._py=dy;
+        const tx=dx+groot.velX*2.4, ty=dy+groot.velY*2.4;            // anticipatie: vóór je hand
+        groot.pos.x+=(tx-groot.pos.x)*0.38; groot.pos.y+=(ty-groot.pos.y)*0.38; } // strak, direct
       const _dxh=Math.abs(groot.pos.x-(groot._lx??groot.pos.x)); groot._lx=groot.pos.x;
       horBeweeg += (Math.min(1,_dxh*9) - horBeweeg)*0.18;            // horizontale beweging → scatter
       const engage=Math.min(1, groot.pos.distanceTo(new THREE.Vector3(0,0,0))/(RING_R*0.85));
@@ -371,13 +375,11 @@
       // takken (het weefsel): xyz — z fluïde/grillig, x&y stabiel
       for(let i=0;i<takken.length;i++){ const c=takken[i]; c.groei+=(1-c.groei)*0.05;
         if(i===0){ c.pos.copy(grootMesh.position); }
-        else { const doel=c.rust.clone();
-          doel.x+=Math.sin(t*0.22+c.faseZ)*0.012;                    // x stabiel — nauwelijks drift
-          doel.y+=Math.cos(t*0.18+c.faseZ)*0.012;                    // y stabiel
-          doel.z=c.rust.z + Math.sin(t*0.55+c.faseZ)*0.09 + Math.sin(t*0.95+c.faseZ*1.3)*0.035; // z iets levendiger maar kalm
-          // koppeling naar de dux — zacht, zodat de bollen stil blijven liggen
-          doel.lerp(grootMesh.position, 0.035*(0.4+glut*0.6));
-          c.pos.lerp(doel, 0.045); c.energie=c.energie*0.985 + dopa*0.06 + actief*0.02;
+        else { // direct spiegelen: het weefsel leunt strak met jóuw beweging mee (de bol loopt al vóór je),
+          // géén losse drift = geen verwarring. In rust: stil. Bij beweging: bijna eng-direct.
+          const doel=c.rust.clone().add(grootMesh.position.clone().multiplyScalar(0.30+glut*0.35));
+          doel.z += Math.sin(t*0.5+c.faseZ)*0.025;                   // enkel een fluistering leven
+          c.pos.lerp(doel, 0.26); c.energie=c.energie*0.985 + dopa*0.06 + actief*0.02;
           c.mesh.position.copy(c.pos); c.mesh.scale.setScalar(c.groei*(0.9+c.energie*0.7));
           const e=Math.min(1,c.energie);
           c.mesh.material.emissive.setRGB(e*0.4*dopa+e*0.1, e*0.12, e*0.02);
