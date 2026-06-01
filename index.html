@@ -285,7 +285,7 @@
     const klok=new THREE.Clock(); const statusEl=document.getElementById('status');
     function update(){
       const t=klok.getElapsedTime();
-      const waterY=Math.sin(t*0.3*2*Math.PI)*0.03;   // tijd licht: nauwelijks dobber
+      const waterY=Math.sin(t*0.22*2*Math.PI)*0.008;  // tijd zeer licht: de bollen liggen stil
 
       // adem: vul de cadans-buffer, leer de rustadem, vind de sprong
       ademBuf[ademIdx]=instSnelheid; ademIdx=(ademIdx+1)%ademBuf.length;
@@ -334,12 +334,12 @@
       for(let i=0;i<takken.length;i++){ const c=takken[i]; c.groei+=(1-c.groei)*0.05;
         if(i===0){ c.pos.copy(grootMesh.position); }
         else { const doel=c.rust.clone();
-          doel.x+=Math.sin(t*0.5+c.faseZ)*0.05;                      // x stabiel (kleine drift)
-          doel.y+=Math.cos(t*0.4+c.faseZ)*0.05;                      // y stabiel
-          doel.z=c.rust.z + Math.sin(t*1.7+c.faseZ)*0.5 + Math.sin(t*2.9+c.faseZ*1.3)*0.25; // z fluïde/grillig
-          // koppeling naar de dux + dopamine trekt het weefsel open
-          doel.lerp(grootMesh.position, 0.12*(0.5+glut*0.5));
-          c.pos.lerp(doel, 0.08); c.energie=c.energie*0.985 + dopa*0.06 + actief*0.02;
+          doel.x+=Math.sin(t*0.22+c.faseZ)*0.012;                    // x stabiel — nauwelijks drift
+          doel.y+=Math.cos(t*0.18+c.faseZ)*0.012;                    // y stabiel
+          doel.z=c.rust.z + Math.sin(t*0.55+c.faseZ)*0.09 + Math.sin(t*0.95+c.faseZ*1.3)*0.035; // z iets levendiger maar kalm
+          // koppeling naar de dux — zacht, zodat de bollen stil blijven liggen
+          doel.lerp(grootMesh.position, 0.035*(0.4+glut*0.6));
+          c.pos.lerp(doel, 0.045); c.energie=c.energie*0.985 + dopa*0.06 + actief*0.02;
           c.mesh.position.copy(c.pos); c.mesh.scale.setScalar(c.groei*(0.9+c.energie*0.7));
           const e=Math.min(1,c.energie);
           c.mesh.material.emissive.setRGB(e*0.4*dopa+e*0.1, e*0.12, e*0.02);
