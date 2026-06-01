@@ -47,7 +47,7 @@ En de kern: **je komt pas "door" als je alle zes hebt aangeraakt.** Je kunt het 
 
 ## Probeer het
 
-▶ **`<speel-link volgt na publicatie>`** — opent in je browser, draait volledig op je eigen apparaat.
+▶ **[Speel De Hurk](https://ontploffendhoofd.github.io/de-hurk/)** — opent in je browser, draait volledig op je eigen apparaat.
 
 **Geen account. Geen server. Geen data verlaat je toestel.** Beweeg de bol, typ eens ritmisch, druk `←` (de vorige vraag) en `H` (samen), en `Enter` als alle zes lichtjes branden.
 
