@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "Als je dit werk gebruikt, vertaalt of erop voortbouwt, citeer het dan als volgt."
+title: "De Hurk — een formatieve verwonderings-lesmethode"
+abstract: >-
+  Een open, client-side lesmethode die het zoeken beloont in plaats van de uitkomst:
+  formatief, niet performatief. Ze leest de regelmaat van de interactie (de "adem"),
+  leert de basislijn van de lerende, en geeft haar beloning (gemodelleerd als dopamine)
+  bij de hapering — de sprong in het onbekende — niet bij de winst. Bewust geen
+  gamification. Leren als zes koppelingen (signaal, stof, elektrisch, mechanisch,
+  hechting, herkenning); doorgaan kan pas wanneer alle zes zijn aangeraakt. Een
+  toetsbaar model, aangeboden als uitnodiging.
+authors:
+  - family-names: Hogerheijde
+    given-names: Marinus Jacobus
+date-released: 2026-06-01
+version: "1.0.0"
+license: CC-BY-4.0
+keywords:
+  - onderwijs
+  - lesmethode
+  - verwondering
+  - formatief leren
+  - intrinsieke motivatie
+  - neuromodulatie
+  - fugatief leermodel
+  - anti-gamification
