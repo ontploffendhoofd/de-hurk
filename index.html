@@ -187,39 +187,51 @@
     takken.push(maakTak(0,null));
 
     // ---- AUDIO: nt-synthese (drone gestuurd door de NT's) ----
-    let actx=null, master=null, lp=null, oscs=[], delay=null, fb=null, wet=null, sparkle=[];
+    let actx=null, master=null, masterPan=null, lp=null, oscs=[], delay=null, fb=null, wet=null, sparkle=[];
+    let horBeweeg=0;   // horizontale beweging → stereo-scatter
     function bouwAudio(c){
       actx=c; master=actx.createGain(); master.gain.value=0.46;
+      masterPan=actx.createStereoPanner();                          // links/rechts volgt de bol
       lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420; lp.Q.value=0.5;
       const comp=actx.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=4; comp.attack.value=0.005; comp.release.value=0.25;
-      master.connect(lp); lp.connect(comp); comp.connect(actx.destination);
+      master.connect(masterPan); masterPan.connect(lp); lp.connect(comp); comp.connect(actx.destination);
       // feedback-delay = ruimte & leven (heldere echo's)
       delay=actx.createDelay(1.2); delay.delayTime.value=0.30;
       fb=actx.createGain(); fb.gain.value=0.40;
       wet=actx.createGain(); wet.gain.value=0.30;
       const dhp=actx.createBiquadFilter(); dhp.type='highpass'; dhp.frequency.value=320;
       master.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(dhp); dhp.connect(wet); wet.connect(comp);
-      // grondtoon-drone + boventonen
+      // grondtoon centraal · boventonen elk met eigen pan (scatter)
       [1,2,3,4,5,6].forEach((r,i)=>{
         const o=actx.createOscillator(); o.type=(i<2?'sine':'triangle'); o.frequency.value=F0*r;
-        const g=actx.createGain(); g.gain.value=0; o.connect(g); g.connect(master); o.start();
-        oscs.push({o,g,r});
+        const g=actx.createGain(); g.gain.value=0; o.connect(g);
+        let pan=null;
+        if(r>2){ pan=actx.createStereoPanner(); g.connect(pan); pan.connect(master); }
+        else g.connect(master);                                     // grondtoon = anker, centraal
+        o.start(); oscs.push({o,g,r,pan,spread:(i-2.5)/2.5});
       });
-      // sprankel — hoge, twinkelende partials (gaan via de delay → shimmer)
+      // sprankel — hoge twinkelende partials, elk eigen pan
+      const sp=[-0.7,0.7,-0.45,0.55];
       [4,6,8,12].forEach((r,i)=>{
         const o=actx.createOscillator(); o.type='sine'; o.frequency.value=F0*r;
-        const g=actx.createGain(); g.gain.value=0; o.connect(g); g.connect(master); o.start();
-        sparkle.push({o,g,r,rate:2.7+i*1.4,ph:i*1.9});
+        const g=actx.createGain(); g.gain.value=0; o.connect(g);
+        const pan=actx.createStereoPanner(); g.connect(pan); pan.connect(master); o.start();
+        sparkle.push({o,g,r,pan,rate:2.7+i*1.4,ph:i*1.9,spread:sp[i]});
       });
     }
     function klankUpdate(){
       if(!actx) return;
       const t=actx.currentTime;
-      lp.frequency.setTargetAtTime(420 + glut*4200, t, 0.1);          // opener → de sprankel komt door
+      const wiel=Math.max(0,(groot.gewicht-0.4))*0.05;                // muiswiel → meer boventonen
+      const cl=v=>Math.max(-1,Math.min(1,v));
+      const scat=Math.min(1,horBeweeg);
+      lp.frequency.setTargetAtTime(420 + glut*4200 + groot.gewicht*500, t, 0.1); // wiel opent ook helderheid
+      masterPan.pan.setTargetAtTime(cl(groot.pos.x/RING_R)*0.75, t, 0.08);       // links/rechts volgt de bol
       for(const osc of oscs){
         let g;
         if(osc.r<=2) g=(0.10 + gaba*0.16)/osc.r;                      // grondtoon-drone = GABA (rust)
-        else         g=(glut*0.07)/(osc.r*0.8);                       // boventonen = glutamaat (inspanning)
+        else { g=(glut*0.07 + wiel)/(osc.r*0.8);                      // boventonen = glutamaat + wiel
+               osc.pan.pan.setTargetAtTime(cl(osc.spread*(0.15+scat*0.85)), t, 0.1); } // scatter bij beweging
         g*=(0.55 + dopa*0.9);                                         // dopamine laat alles even opbloeien
         osc.g.gain.setTargetAtTime(Math.max(0,g), t, 0.09);
         osc.o.detune.setTargetAtTime(osc.r>2 ? glut*9 : 0, t, 0.2);   // lichte spanning bij inspanning
@@ -228,11 +240,12 @@
       delay.delayTime.setTargetAtTime(0.24 + gaba*0.16, t, 0.3);
       fb.gain.setTargetAtTime(0.30 + gaba*0.18 - glut*0.04, t, 0.25);
       wet.gain.setTargetAtTime(0.22 + dopa*0.38, t, 0.15);
-      // sprankel: twinkelende hoge partials, sterker bij inspanning/venture
+      // sprankel: twinkelende hoge partials, sterker bij inspanning/venture/wiel, uitwaaierend
       for(const s of sparkle){
         const tw=0.5+0.5*Math.sin(t*s.rate+s.ph);
-        const g=(0.012 + glut*0.018 + dopa*0.05)*tw/(s.r*0.16);
+        const g=(0.012 + glut*0.018 + dopa*0.05 + wiel*0.5)*tw/(s.r*0.16);
         s.g.gain.setTargetAtTime(Math.max(0,g), t, 0.05);
+        s.pan.pan.setTargetAtTime(cl(s.spread*(0.3+scat*0.7)), t, 0.1);
       }
     }
 
@@ -323,6 +336,8 @@
       if(pointerAan){ const r=Math.hypot(muisW.x,muisW.y), mx=RING_R-0.4;
         const dx=(r>mx)?muisW.x*(mx/r):muisW.x, dy=(r>mx)?muisW.y*(mx/r):muisW.y;
         groot.pos.x+=(dx-groot.pos.x)*0.10; groot.pos.y+=(dy-groot.pos.y)*0.10; }
+      const _dxh=Math.abs(groot.pos.x-(groot._lx??groot.pos.x)); groot._lx=groot.pos.x;
+      horBeweeg += (Math.min(1,_dxh*9) - horBeweeg)*0.18;            // horizontale beweging → scatter
       const engage=Math.min(1, groot.pos.distanceTo(new THREE.Vector3(0,0,0))/(RING_R*0.85));
       const rust=1-actief;
 
