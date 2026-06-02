@@ -186,9 +186,22 @@
     const vorige = new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 24),
       new THREE.MeshStandardMaterial({ color:0x55617a, roughness:0.8, transparent:true, opacity:0.35 }));
     vorige.position.set(0, 0.4, -3.2); scene.add(vorige);
-    const antwoord = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 12, 40),
-      new THREE.MeshBasicMaterial({ color:0x7fd6a8, transparent:true, opacity:0.4 }));
-    antwoord.position.set(0, 1.7, 1.6); antwoord.rotation.x = Math.PI/2.2; scene.add(antwoord);
+    // centrale VASTE ring = de hoofdvraag
+    const antwoord = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.05, 16, 56),
+      new THREE.MeshBasicMaterial({ color:0xe8a572, transparent:true, opacity:0.55 }));
+    antwoord.position.set(0, 1.9, 0); antwoord.rotation.x = Math.PI/2.3; scene.add(antwoord);
+    // de ZES leermechanismen — vaste bollen in een halve cirkel (3 links · 3 rechts)
+    const MECH=[
+      {k:'signaal',    pos:[-1.7, 1.0, 0]}, {k:'stof',       pos:[-2.2, 0.0, 0]}, {k:'elektrisch', pos:[-1.7,-1.0, 0]},
+      {k:'mechanisch', pos:[ 1.7, 1.0, 0]}, {k:'herkenning', pos:[ 2.2, 0.0, 0]}, {k:'hechting',   pos:[ 1.7,-1.0, 0]},
+    ];
+    const mechBollen = MECH.map(m=>{
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.27,28,28),
+        new THREE.MeshStandardMaterial({ color:0x55617a, roughness:0.55, metalness:0.05, emissive:0x000000 }));
+      mesh.position.set(m.pos[0], m.pos[1], m.pos[2]); scene.add(mesh);
+      const el=document.createElement('div'); el.className='label'; el.textContent=m.k; document.body.appendChild(el);
+      return {k:m.k, mesh, label:el, pos:new THREE.Vector3(m.pos[0],m.pos[1],m.pos[2])};
+    });
 
     // grote bol (huidige vraag) — gewicht = moeilijkheid
     const grootMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 48, 48),
@@ -332,9 +345,27 @@
       else document.querySelectorAll('.kopp .k').forEach(el=>{ if(koppeling[el.dataset.k]<1){ el.classList.add('mis'); setTimeout(()=>el.classList.remove('mis'),1500); } });
     }
 
-    function volgendeVraag(){      // bereiken geeft geen fanfare — opent gewoon de volgende
-      vorige.position.set(0,0.4,-3.2); groot.pos.set(0,0,0);
+    // ---- de vragenreeks (het leerpad) — illustratief; echte vragen/domein volgen ----
+    const VRAGEN=[
+      {som:"1 + 1 = 2", g:1.0, v:{signaal:"het verschil",stof:"twee dragen",elektrisch:"één–twee",mechanisch:"vinger+vinger",herkenning:"als 2+2",hechting:"ik+jij"}},
+      {som:"2 + 2 = 4", g:1.2, v:{signaal:"twee én twee",stof:"twee paren",elektrisch:"in tweeën",mechanisch:"twee handen",herkenning:"verdubbelen",hechting:"paar+paar"}},
+      {som:"3 − 1 = 2", g:1.4, v:{signaal:"er gaat af",stof:"houd 3, −1",elektrisch:"terugtellen",mechanisch:"vinger weg",herkenning:"omgekeerd +1",hechting:"ik geef er één"}},
+      {som:"5 = 2 + 3", g:1.6, v:{signaal:"vijf splitst",stof:"twee delen",elektrisch:"2 dan 3",mechanisch:"splitsen",herkenning:"ontbinden",hechting:"samen delen"}},
+    ];
+    let vraagIdx=0;
+    function laadVraag(i){
+      vraagIdx=((i%VRAGEN.length)+VRAGEN.length)%VRAGEN.length;
+      const q=VRAGEN[vraagIdx];
+      const somEl=document.querySelector('.vraag .som'); if(somEl) somEl.textContent=q.som;
+      const ondEl=document.querySelector('.vraag .ond'); if(ondEl) ondEl.textContent=`vraag ${vraagIdx+1}/${VRAGEN.length} · zes deuren`;
+      groot.gewicht=q.g;
+      for(const k of KOPP){ const el=document.querySelector('.kopp .k[data-k="'+k+'"] .vra'); if(el) el.textContent=q.v[k]; }
     }
+    function volgendeVraag(){      // bereiken geeft geen fanfare — schuift naar de volgende vraag
+      vorige.position.set(0,0.4,-3.2); groot.pos.set(0,0,0);
+      laadVraag(vraagIdx+1);
+    }
+    laadVraag(0);
 
     // ---- BIFURCATIE — de venture laat een tak ontspringen ----
     let takKoel=0;
@@ -417,6 +448,12 @@
           c.mesh.material.color.setRGB(0.78+e*0.12, 0.72-glut*0.05, 0.61-e*0.1+gaba*0.1);
         }
       }
+      // de zes vaste leermechanisme-bollen lichten op zodra hun koppeling is aangeraakt
+      for(const mb of mechBollen){ const aan=koppeling[mb.k]>=1;
+        mb.mesh.material.emissive.setRGB(0, aan?0.42:0, aan?0.30:0);
+        mb.mesh.material.color.setRGB(aan?0.50:0.33, aan?0.84:0.38, aan?0.66:0.48);
+        mb.mesh.scale.setScalar(aan?1.18:1.0);
+      }
       klankUpdate();
       statusEl.textContent = `${rust>0.6?'rust · denken':'inspanning'} · moeilijkheid ${groot.gewicht.toFixed(1)}`;
     }
@@ -424,7 +461,10 @@
     function labels(){ const v=new THREE.Vector3();
       for(const c of takken){ if(!c.label) continue; v.copy(c.pos).project(camera);
         c.label.style.left=((v.x*0.5+0.5)*innerWidth)+'px'; c.label.style.top=((-v.y*0.5+0.5)*innerHeight-24)+'px';
-        c.label.style.opacity=(v.z<1)?0.55:0; } }
+        c.label.style.opacity=(v.z<1)?0.55:0; }
+      for(const mb of mechBollen){ v.copy(mb.pos).project(camera);
+        mb.label.style.left=((v.x*0.5+0.5)*innerWidth)+'px'; mb.label.style.top=((-v.y*0.5+0.5)*innerHeight+22)+'px';
+        mb.label.style.opacity=(koppeling[mb.k]>=1)?0.9:0.5; } }
 
     const $=id=>document.getElementById(id);
     function bar(f,v,val,txt){ $(f).style.width=Math.max(0,Math.min(1,val))*100+'%'; $(v).textContent=txt; }
